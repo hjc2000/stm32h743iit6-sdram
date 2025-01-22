@@ -44,6 +44,8 @@ namespace bsp
             return 0;
         }
 
+        void InitializeGPIO();
+
     public:
         static_function SDRAMController &Instance();
 
