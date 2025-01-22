@@ -49,8 +49,16 @@ namespace bsp
     public:
         static_function SDRAMController &Instance();
 
-        /// @brief 打开 SDRAM 控制器。
+        /// @brief 将 SDRAM 控制器以读突发的模式打开。写不突发。
         /// @param timing
-        virtual void Open(bsp::sdram::ISDRAMTiming const &timing) override;
+        /// @param row_bit_count
+        /// @param column_bit_count
+        /// @param data_width
+        /// @param read_burst_length
+        virtual void OpenAsReadBurstMode(bsp::sdram::ISDRAMTiming const &timing,
+                                         bsp::sdram::property::RowBitCount const &row_bit_count,
+                                         bsp::sdram::property::ColumnBitCount const &column_bit_count,
+                                         bsp::sdram::property::DataWidth const &data_width,
+                                         bsp::sdram::property::ReadBurstLength const &read_burst_length) override;
     };
 } // namespace bsp

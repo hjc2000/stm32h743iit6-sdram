@@ -36,7 +36,11 @@ bsp::SDRAMController &bsp::SDRAMController::Instance()
     return g.Instance();
 }
 
-void bsp::SDRAMController::Open(bsp::sdram::ISDRAMTiming const &timing)
+void bsp::SDRAMController::OpenAsReadBurstMode(bsp::sdram::ISDRAMTiming const &timing,
+                                               bsp::sdram::property::RowBitCount const &row_bit_count,
+                                               bsp::sdram::property::ColumnBitCount const &column_bit_count,
+                                               bsp::sdram::property::DataWidth const &data_width,
+                                               bsp::sdram::property::ReadBurstLength const &read_burst_length)
 {
     /* 保护SDRAM区域,共32M字节 */
     mpu_set_protection(0xC0000000,               /* 基地址 */
@@ -49,4 +53,13 @@ void bsp::SDRAMController::Open(bsp::sdram::ISDRAMTiming const &timing)
 
     __HAL_RCC_FMC_CLK_ENABLE();
     InitializeGPIO();
+
+    FMC_SDRAM_TimingTypeDef timing_def{};
+    timing_def.LoadToActiveDelay = timing.T_RSC_CLK_Count();
+    timing_def.ExitSelfRefreshDelay = timing.T_XSR_CLK_Count();
+    timing_def.SelfRefreshTime = timing.T_RAS_CLK_Count();
+    timing_def.RowCycleDelay = timing.T_RC_CLK_Count();
+    timing_def.WriteRecoveryTime = timing.T_WR_CLK_Count();
+    timing_def.RPDelay = timing.T_RP_CLK_Count();
+    timing_def.RCDDelay = timing.T_RCD_CLK_Count();
 }
