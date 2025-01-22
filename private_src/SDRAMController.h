@@ -46,6 +46,10 @@ namespace bsp
 
         void InitializeGPIO();
 
+        /// @brief 开始自动发送 “自动刷新” 命令。
+        /// @param timing
+        void StartAutoSendingAutoRefreshCommand(bsp::sdram::ISDRAMTiming const &timing);
+
     public:
         static_function SDRAMController &Instance();
 
@@ -60,5 +64,18 @@ namespace bsp
                                          bsp::sdram::property::ColumnBitCount const &column_bit_count,
                                          bsp::sdram::property::DataWidth const &data_width,
                                          bsp::sdram::property::ReadBurstLength const &read_burst_length) override;
+
+        /// @brief 将输入信号置于空操作命令状态，然后开始向 SDRAM 提供 CLK 信号。
+        void PowerUp();
+
+        /// @brief 发送：“预充电所有 BANK” 的命令。
+        virtual void PrechargeAll() override;
+
+        /// @brief 发送自动刷新命令。
+        virtual void AutoRefresh() override;
+
+        /// @brief 写模式寄存器。
+        /// @param value
+        virtual void WriteModeRegister(uint32_t value) override;
     };
 } // namespace bsp

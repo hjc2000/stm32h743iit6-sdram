@@ -20,6 +20,17 @@ void bsp::SDRAMController::InitializeGPIO()
     }
 }
 
+void bsp::SDRAMController::StartAutoSendingAutoRefreshCommand(bsp::sdram::ISDRAMTiming const &timing)
+{
+    int refresh_count = timing.T_AutoRefreshCommand_CLK_Count() - 50;
+    if (refresh_count < 50)
+    {
+        throw std::runtime_error{"FMC 的频率过低导致几乎一直都要处于发送自动刷新命令的状态。"};
+    }
+
+    HAL_SDRAM_ProgramRefreshRate(&_handle, refresh_count);
+}
+
 bsp::SDRAMController &bsp::SDRAMController::Instance()
 {
     class Getter :
@@ -54,6 +65,18 @@ void bsp::SDRAMController::OpenAsReadBurstMode(bsp::sdram::ISDRAMTiming const &t
     __HAL_RCC_FMC_CLK_ENABLE();
     InitializeGPIO();
 
+    _handle.Instance = FMC_SDRAM_DEVICE;
+    _handle.Init.SDBank = FMC_SDRAM_BANK1;
+    _handle.Init.ColumnBitsNumber = FMC_SDRAM_COLUMN_BITS_NUM_9;
+    _handle.Init.RowBitsNumber = FMC_SDRAM_ROW_BITS_NUM_13;
+    _handle.Init.MemoryDataWidth = FMC_SDRAM_MEM_BUS_WIDTH_16;
+    _handle.Init.InternalBankNumber = FMC_SDRAM_INTERN_BANKS_NUM_4;
+    _handle.Init.CASLatency = FMC_SDRAM_CAS_LATENCY_3;
+    _handle.Init.WriteProtection = FMC_SDRAM_WRITE_PROTECTION_DISABLE;
+    _handle.Init.SDClockPeriod = FMC_SDRAM_CLOCK_PERIOD_2;
+    _handle.Init.ReadBurst = FMC_SDRAM_RBURST_ENABLE;
+    _handle.Init.ReadPipeDelay = FMC_SDRAM_RPIPE_DELAY_2;
+
     FMC_SDRAM_TimingTypeDef timing_def{};
     timing_def.LoadToActiveDelay = timing.T_RSC_CLK_Count();
     timing_def.ExitSelfRefreshDelay = timing.T_XSR_CLK_Count();
@@ -62,4 +85,64 @@ void bsp::SDRAMController::OpenAsReadBurstMode(bsp::sdram::ISDRAMTiming const &t
     timing_def.WriteRecoveryTime = timing.T_WR_CLK_Count();
     timing_def.RPDelay = timing.T_RP_CLK_Count();
     timing_def.RCDDelay = timing.T_RCD_CLK_Count();
+
+    HAL_SDRAM_Init(&_handle, &timing_def);
+    PowerUp();
+    StartAutoSendingAutoRefreshCommand(timing);
+}
+
+void bsp::SDRAMController::PowerUp()
+{
+    FMC_SDRAM_CommandTypeDef command{};
+    command.CommandTarget = FMC_SDRAM_CMD_TARGET_BANK1;
+    command.CommandMode = FMC_SDRAM_CMD_CLK_ENABLE;
+    command.AutoRefreshNumber = 1;
+    command.ModeRegisterDefinition = 0;
+    HAL_StatusTypeDef result = HAL_SDRAM_SendCommand(&_handle, &command, 0XFFFF);
+    if (result != HAL_StatusTypeDef::HAL_OK)
+    {
+        throw std::runtime_error{"SDRAM 上电失败。"};
+    }
+}
+
+void bsp::SDRAMController::PrechargeAll()
+{
+    FMC_SDRAM_CommandTypeDef command{};
+    command.CommandTarget = FMC_SDRAM_CMD_TARGET_BANK1;
+    command.CommandMode = FMC_SDRAM_CMD_PALL;
+    command.AutoRefreshNumber = 1;
+    command.ModeRegisterDefinition = 0;
+    HAL_StatusTypeDef result = HAL_SDRAM_SendCommand(&_handle, &command, 0XFFFF);
+    if (result != HAL_StatusTypeDef::HAL_OK)
+    {
+        throw std::runtime_error{"发送 “预充电所有 BANK” 命令失败。"};
+    }
+}
+
+void bsp::SDRAMController::AutoRefresh()
+{
+    FMC_SDRAM_CommandTypeDef command{};
+    command.CommandTarget = FMC_SDRAM_CMD_TARGET_BANK1;
+    command.CommandMode = FMC_SDRAM_CMD_AUTOREFRESH_MODE;
+    command.AutoRefreshNumber = 1;
+    command.ModeRegisterDefinition = 0;
+    HAL_StatusTypeDef result = HAL_SDRAM_SendCommand(&_handle, &command, 0XFFFF);
+    if (result != HAL_StatusTypeDef::HAL_OK)
+    {
+        throw std::runtime_error{"发送 “自动刷新” 命令失败。"};
+    }
+}
+
+void bsp::SDRAMController::WriteModeRegister(uint32_t value)
+{
+    FMC_SDRAM_CommandTypeDef command{};
+    command.CommandTarget = FMC_SDRAM_CMD_TARGET_BANK1;
+    command.CommandMode = FMC_SDRAM_CMD_LOAD_MODE;
+    command.AutoRefreshNumber = 1;
+    command.ModeRegisterDefinition = value;
+    HAL_StatusTypeDef result = HAL_SDRAM_SendCommand(&_handle, &command, 0XFFFF);
+    if (result != HAL_StatusTypeDef::HAL_OK)
+    {
+        throw std::runtime_error{"发送 “写模式寄存器” 命令失败。"};
+    }
 }
