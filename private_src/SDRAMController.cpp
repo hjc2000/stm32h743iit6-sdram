@@ -67,9 +67,81 @@ void bsp::SDRAMController::OpenAsReadBurstMode(bsp::sdram::ISDRAMTiming const &t
 
     _handle.Instance = FMC_SDRAM_DEVICE;
     _handle.Init.SDBank = FMC_SDRAM_BANK1;
-    _handle.Init.ColumnBitsNumber = FMC_SDRAM_COLUMN_BITS_NUM_9;
-    _handle.Init.RowBitsNumber = FMC_SDRAM_ROW_BITS_NUM_13;
-    _handle.Init.MemoryDataWidth = FMC_SDRAM_MEM_BUS_WIDTH_16;
+
+    switch (row_bit_count._value)
+    {
+    case 11:
+        {
+            _handle.Init.RowBitsNumber = FMC_SDRAM_ROW_BITS_NUM_11;
+            break;
+        }
+    case 12:
+        {
+            _handle.Init.RowBitsNumber = FMC_SDRAM_ROW_BITS_NUM_12;
+            break;
+        }
+    case 13:
+        {
+            _handle.Init.RowBitsNumber = FMC_SDRAM_ROW_BITS_NUM_13;
+            break;
+        }
+    default:
+        {
+            throw std::invalid_argument{"不支持的行地址位数。"};
+        }
+    }
+
+    switch (column_bit_count._value)
+    {
+    case 8:
+        {
+            _handle.Init.ColumnBitsNumber = FMC_SDRAM_COLUMN_BITS_NUM_8;
+            break;
+        }
+    case 9:
+        {
+            _handle.Init.ColumnBitsNumber = FMC_SDRAM_COLUMN_BITS_NUM_9;
+            break;
+        }
+    case 10:
+        {
+            _handle.Init.ColumnBitsNumber = FMC_SDRAM_COLUMN_BITS_NUM_10;
+            break;
+        }
+    case 11:
+        {
+            _handle.Init.ColumnBitsNumber = FMC_SDRAM_COLUMN_BITS_NUM_11;
+            break;
+        }
+    default:
+        {
+            throw std::invalid_argument{"不支持的列地址位数。"};
+        }
+    }
+
+    switch (data_width._value)
+    {
+    case 8:
+        {
+            _handle.Init.MemoryDataWidth = FMC_SDRAM_MEM_BUS_WIDTH_8;
+            break;
+        }
+    case 16:
+        {
+            _handle.Init.MemoryDataWidth = FMC_SDRAM_MEM_BUS_WIDTH_16;
+            break;
+        }
+    case 32:
+        {
+            _handle.Init.MemoryDataWidth = FMC_SDRAM_MEM_BUS_WIDTH_32;
+            break;
+        }
+    default:
+        {
+            throw std::invalid_argument{"不支持的数据宽度。"};
+        }
+    }
+
     _handle.Init.InternalBankNumber = FMC_SDRAM_INTERN_BANKS_NUM_4;
     _handle.Init.CASLatency = FMC_SDRAM_CAS_LATENCY_3;
     _handle.Init.WriteProtection = FMC_SDRAM_WRITE_PROTECTION_DISABLE;
