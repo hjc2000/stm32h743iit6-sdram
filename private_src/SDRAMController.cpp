@@ -1,4 +1,5 @@
 #include "SDRAMController.h"
+#include <bsp-interface/di/clock.h>
 #include <bsp-interface/di/gpio.h>
 
 void bsp::SDRAMController::InitializeGPIO()
@@ -47,7 +48,7 @@ bsp::SDRAMController &bsp::SDRAMController::Instance()
     return g.Instance();
 }
 
-void bsp::SDRAMController::OpenAsReadBurstMode(bsp::sdram::ISDRAMTiming const &timing,
+void bsp::SDRAMController::OpenAsReadBurstMode(bsp::sdram::ISDRAMTimingProvider const &timing_provider,
                                                bsp::sdram::property::RowBitCount const &row_bit_count,
                                                bsp::sdram::property::ColumnBitCount const &column_bit_count,
                                                bsp::sdram::property::DataWidth const &data_width,
@@ -149,18 +150,19 @@ void bsp::SDRAMController::OpenAsReadBurstMode(bsp::sdram::ISDRAMTiming const &t
     _handle.Init.ReadBurst = FMC_SDRAM_RBURST_ENABLE;
     _handle.Init.ReadPipeDelay = FMC_SDRAM_RPIPE_DELAY_2;
 
+    std::shared_ptr<bsp::sdram::ISDRAMTiming> timing = timing_provider.GetTiming(base::MHz{bsp::di::clock::ClockSignalCollection().Get("hclk")->Frequency() / 2});
     FMC_SDRAM_TimingTypeDef timing_def{};
-    timing_def.LoadToActiveDelay = timing.T_RSC_CLK_Count();
-    timing_def.ExitSelfRefreshDelay = timing.T_XSR_CLK_Count();
-    timing_def.SelfRefreshTime = timing.T_RAS_CLK_Count();
-    timing_def.RowCycleDelay = timing.T_RC_CLK_Count();
-    timing_def.WriteRecoveryTime = timing.T_WR_CLK_Count();
-    timing_def.RPDelay = timing.T_RP_CLK_Count();
-    timing_def.RCDDelay = timing.T_RCD_CLK_Count();
+    timing_def.LoadToActiveDelay = timing->T_RSC_CLK_Count();
+    timing_def.ExitSelfRefreshDelay = timing->T_XSR_CLK_Count();
+    timing_def.SelfRefreshTime = timing->T_RAS_CLK_Count();
+    timing_def.RowCycleDelay = timing->T_RC_CLK_Count();
+    timing_def.WriteRecoveryTime = timing->T_WR_CLK_Count();
+    timing_def.RPDelay = timing->T_RP_CLK_Count();
+    timing_def.RCDDelay = timing->T_RCD_CLK_Count();
 
     HAL_SDRAM_Init(&_handle, &timing_def);
     PowerUp();
-    StartAutoSendingAutoRefreshCommand(timing);
+    StartAutoSendingAutoRefreshCommand(*timing);
 }
 
 void bsp::SDRAMController::PowerUp()
