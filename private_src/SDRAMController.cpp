@@ -146,11 +146,26 @@ void bsp::SDRAMController::OpenAsReadBurstMode(bsp::sdram::ISDRAMTimingProvider 
     _handle.Init.InternalBankNumber = FMC_SDRAM_INTERN_BANKS_NUM_4;
     _handle.Init.CASLatency = FMC_SDRAM_CAS_LATENCY_3;
     _handle.Init.WriteProtection = FMC_SDRAM_WRITE_PROTECTION_DISABLE;
-    _handle.Init.SDClockPeriod = FMC_SDRAM_CLOCK_PERIOD_2;
     _handle.Init.ReadBurst = FMC_SDRAM_RBURST_ENABLE;
     _handle.Init.ReadPipeDelay = FMC_SDRAM_RPIPE_DELAY_2;
 
-    std::shared_ptr<bsp::sdram::ISDRAMTiming> timing = timing_provider.GetTiming(base::MHz{bsp::di::clock::ClockSignalCollection().Get("hclk")->Frequency() / 2});
+    std::shared_ptr<bsp::sdram::ISDRAMTiming> timing;
+    {
+        base::MHz hclk_freq = bsp::di::clock::ClockSignalCollection().Get("hclk")->Frequency();
+
+        // 分频系数
+        int hclk_div = 2;
+        _handle.Init.SDClockPeriod = FMC_SDRAM_CLOCK_PERIOD_2;
+
+        if (hclk_freq / hclk_div > timing_provider.MaxClkFrequency())
+        {
+            hclk_div = 3;
+            _handle.Init.SDClockPeriod = FMC_SDRAM_CLOCK_PERIOD_3;
+        }
+
+        timing = timing_provider.GetTiming(base::MHz{hclk_freq / hclk_div});
+    }
+
     FMC_SDRAM_TimingTypeDef timing_def{};
     timing_def.LoadToActiveDelay = timing->T_RSC_CLK_Count();
     timing_def.ExitSelfRefreshDelay = timing->T_XSR_CLK_Count();
