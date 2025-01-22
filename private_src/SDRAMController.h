@@ -84,5 +84,13 @@ namespace bsp
         /// @brief 控制器被打开后所使用的时序。
         /// @return
         virtual bsp::sdram::ISDRAMTiming const &Timing() const override;
+
+        /// @brief 此 SDRAM 控制器所管理的内存段的起始地址。打开 SDRAM 后，对着这个地址开始往后的内存区域
+        /// 读写数据即可读写 SDRAM 的内容。
+        /// @return
+        virtual uint8_t *StartAddress() const override
+        {
+            return reinterpret_cast<uint8_t *>(0xC0000000);
+        }
     };
 } // namespace bsp
