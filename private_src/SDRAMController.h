@@ -14,6 +14,7 @@ namespace bsp
         SDRAMController() = default;
 
         SDRAM_HandleTypeDef _handle{};
+        std::shared_ptr<bsp::sdram::ISDRAMTiming> _timing;
 
         uint8_t mpu_set_protection(uint32_t baseaddr,
                                    uint32_t size,
@@ -77,5 +78,9 @@ namespace bsp
         /// @brief 写模式寄存器。
         /// @param value
         virtual void WriteModeRegister(uint32_t value) override;
+
+        /// @brief 控制器被打开后所使用的时序。
+        /// @return
+        virtual bsp::sdram::ISDRAMTiming const &Timing() const override;
     };
 } // namespace bsp

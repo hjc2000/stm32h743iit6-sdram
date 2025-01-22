@@ -144,12 +144,11 @@ void bsp::SDRAMController::OpenAsReadBurstMode(bsp::sdram::ISDRAMTimingProvider 
     }
 
     _handle.Init.InternalBankNumber = FMC_SDRAM_INTERN_BANKS_NUM_4;
-    _handle.Init.CASLatency = FMC_SDRAM_CAS_LATENCY_3;
     _handle.Init.WriteProtection = FMC_SDRAM_WRITE_PROTECTION_DISABLE;
     _handle.Init.ReadBurst = FMC_SDRAM_RBURST_ENABLE;
     _handle.Init.ReadPipeDelay = FMC_SDRAM_RPIPE_DELAY_2;
 
-    std::shared_ptr<bsp::sdram::ISDRAMTiming> timing;
+    // 初始化 _timing
     {
         base::MHz hclk_freq = bsp::di::clock::ClockSignalCollection().Get("hclk")->Frequency();
 
@@ -163,21 +162,40 @@ void bsp::SDRAMController::OpenAsReadBurstMode(bsp::sdram::ISDRAMTimingProvider 
             _handle.Init.SDClockPeriod = FMC_SDRAM_CLOCK_PERIOD_3;
         }
 
-        timing = timing_provider.GetTiming(base::MHz{hclk_freq / hclk_div});
+        _timing = timing_provider.GetTiming(base::MHz{hclk_freq / hclk_div});
+    }
+
+    switch (_timing->CASLatency())
+    {
+    case 1:
+        {
+            _handle.Init.CASLatency = FMC_SDRAM_CAS_LATENCY_1;
+            break;
+        }
+    case 2:
+        {
+            _handle.Init.CASLatency = FMC_SDRAM_CAS_LATENCY_2;
+            break;
+        }
+    case 3:
+        {
+            _handle.Init.CASLatency = FMC_SDRAM_CAS_LATENCY_3;
+            break;
+        }
     }
 
     FMC_SDRAM_TimingTypeDef timing_def{};
-    timing_def.LoadToActiveDelay = timing->T_RSC_CLK_Count();
-    timing_def.ExitSelfRefreshDelay = timing->T_XSR_CLK_Count();
-    timing_def.SelfRefreshTime = timing->T_RAS_CLK_Count();
-    timing_def.RowCycleDelay = timing->T_RC_CLK_Count();
-    timing_def.WriteRecoveryTime = timing->T_WR_CLK_Count();
-    timing_def.RPDelay = timing->T_RP_CLK_Count();
-    timing_def.RCDDelay = timing->T_RCD_CLK_Count();
+    timing_def.LoadToActiveDelay = _timing->T_RSC_CLK_Count();
+    timing_def.ExitSelfRefreshDelay = _timing->T_XSR_CLK_Count();
+    timing_def.SelfRefreshTime = _timing->T_RAS_CLK_Count();
+    timing_def.RowCycleDelay = _timing->T_RC_CLK_Count();
+    timing_def.WriteRecoveryTime = _timing->T_WR_CLK_Count();
+    timing_def.RPDelay = _timing->T_RP_CLK_Count();
+    timing_def.RCDDelay = _timing->T_RCD_CLK_Count();
 
     HAL_SDRAM_Init(&_handle, &timing_def);
     PowerUp();
-    StartAutoSendingAutoRefreshCommand(*timing);
+    StartAutoSendingAutoRefreshCommand(*_timing);
 }
 
 void bsp::SDRAMController::PowerUp()
@@ -234,4 +252,14 @@ void bsp::SDRAMController::WriteModeRegister(uint32_t value)
     {
         throw std::runtime_error{"发送 “写模式寄存器” 命令失败。"};
     }
+}
+
+bsp::sdram::ISDRAMTiming const &bsp::SDRAMController::Timing() const
+{
+    if (_timing == nullptr)
+    {
+        throw std::runtime_error{"要先打开 SDRAM 控制器才能获取所使用的时序。"};
+    }
+
+    return *_timing;
 }
