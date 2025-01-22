@@ -49,6 +49,7 @@ bsp::SDRAMController &bsp::SDRAMController::Instance()
 }
 
 void bsp::SDRAMController::OpenAsReadBurstMode(bsp::sdram::ISDRAMTimingProvider const &timing_provider,
+                                               bsp::sdram::property::BankCount const &bank_count,
                                                bsp::sdram::property::RowBitCount const &row_bit_count,
                                                bsp::sdram::property::ColumnBitCount const &column_bit_count,
                                                bsp::sdram::property::DataWidth const &data_width,
@@ -68,6 +69,9 @@ void bsp::SDRAMController::OpenAsReadBurstMode(bsp::sdram::ISDRAMTimingProvider 
 
     _handle.Instance = FMC_SDRAM_DEVICE;
     _handle.Init.SDBank = FMC_SDRAM_BANK1;
+    _handle.Init.WriteProtection = FMC_SDRAM_WRITE_PROTECTION_DISABLE;
+    _handle.Init.ReadBurst = FMC_SDRAM_RBURST_ENABLE;
+    _handle.Init.ReadPipeDelay = FMC_SDRAM_RPIPE_DELAY_2;
 
     switch (row_bit_count._value)
     {
@@ -143,10 +147,23 @@ void bsp::SDRAMController::OpenAsReadBurstMode(bsp::sdram::ISDRAMTimingProvider 
         }
     }
 
-    _handle.Init.InternalBankNumber = FMC_SDRAM_INTERN_BANKS_NUM_4;
-    _handle.Init.WriteProtection = FMC_SDRAM_WRITE_PROTECTION_DISABLE;
-    _handle.Init.ReadBurst = FMC_SDRAM_RBURST_ENABLE;
-    _handle.Init.ReadPipeDelay = FMC_SDRAM_RPIPE_DELAY_2;
+    switch (bank_count._value)
+    {
+    case 2:
+        {
+            _handle.Init.InternalBankNumber = FMC_SDRAM_INTERN_BANKS_NUM_2;
+            break;
+        }
+    case 4:
+        {
+            _handle.Init.InternalBankNumber = FMC_SDRAM_INTERN_BANKS_NUM_4;
+            break;
+        }
+    default:
+        {
+            throw std::invalid_argument{"不支持的 BANK 数量。"};
+        }
+    }
 
     // 初始化 _timing
     {
@@ -181,6 +198,10 @@ void bsp::SDRAMController::OpenAsReadBurstMode(bsp::sdram::ISDRAMTimingProvider 
         {
             _handle.Init.CASLatency = FMC_SDRAM_CAS_LATENCY_3;
             break;
+        }
+    default:
+        {
+            throw std::invalid_argument{"不支持的 CASLatency."};
         }
     }
 

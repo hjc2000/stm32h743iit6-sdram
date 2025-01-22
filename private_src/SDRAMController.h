@@ -56,11 +56,13 @@ namespace bsp
 
         /// @brief 将 SDRAM 控制器以读突发的模式打开。写不突发。
         /// @param timing_provider
+        /// @param bank_count
         /// @param row_bit_count
         /// @param column_bit_count
         /// @param data_width
         /// @param read_burst_length
         virtual void OpenAsReadBurstMode(bsp::sdram::ISDRAMTimingProvider const &timing_provider,
+                                         bsp::sdram::property::BankCount const &bank_count,
                                          bsp::sdram::property::RowBitCount const &row_bit_count,
                                          bsp::sdram::property::ColumnBitCount const &column_bit_count,
                                          bsp::sdram::property::DataWidth const &data_width,
