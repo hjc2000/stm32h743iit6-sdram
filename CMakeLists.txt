@@ -15,5 +15,3 @@ target_import_src(${ProjectName})
 target_import_base(${ProjectName} PUBLIC)
 target_import_bsp_interface(${ProjectName} PUBLIC)
 target_import_stm32h743iit6_hal(${ProjectName} PRIVATE)
-
-set(CMAKE_INSTALL_PREFIX $ENV{cpp_lib_build_scripts_path}/${platform}/.libs/${ProjectName}/)
