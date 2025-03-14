@@ -29,7 +29,7 @@ AllowShortLambdasOnASingleLine: None
 SortIncludes: CaseInsensitive
 
 PackConstructorInitializers: Never
-IndentPPDirectives: None
+IndentPPDirectives: BeforeHash
 
 # 指针右对齐
 PointerAlignment: Right
@@ -41,6 +41,8 @@ QualifierAlignment: Right
 
 # 访问修饰符后空行
 EmptyLineAfterAccessModifier: Leave
+
+UseTab: ForContinuationAndIndentation
 
 BraceWrapping:
  IndentBraces: false
